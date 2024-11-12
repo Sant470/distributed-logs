@@ -6,6 +6,7 @@ Segment - the abstraction that ties a store and and index together
 Log - the abstraction that ties all the segments together
 */
 
+
 package log
 
 import (
@@ -16,7 +17,7 @@ import (
 	"sync"
 )
 
-var (
+var(
 	enc      = binary.BigEndian
 	lenWidth = 8
 )
