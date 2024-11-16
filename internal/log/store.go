@@ -6,18 +6,16 @@ Segment - the abstraction that ties a store and and index together
 Log - the abstraction that ties all the segments together
 */
 
-
 package log
 
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
 	"os"
 	"sync"
 )
 
-var(
+var (
 	enc      = binary.BigEndian
 	lenWidth = 8
 )
@@ -67,7 +65,6 @@ func (s *store) Read(pos uint64) ([]byte, error) {
 		return nil, err
 	}
 	size := make([]byte, lenWidth)
-	fmt.Println("size: ", string(size))
 	if _, err := s.File.ReadAt(size, int64(pos)); err != nil {
 		return nil, err
 	}
