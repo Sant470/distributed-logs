@@ -52,6 +52,9 @@ func (l *Log) setup() error {
 	}
 	var baseOffsets []uint64
 	for _, file := range files {
+		if path.Ext(file.Name()) == ".index" {
+			continue
+		}
 		offStr := strings.TrimSuffix(file.Name(), path.Ext(file.Name()))
 		off, _ := strconv.ParseUint(offStr, 10, 0)
 		baseOffsets = append(baseOffsets, off)
@@ -81,6 +84,7 @@ func (l *Log) Append(record *api.Record) (uint64, error) {
 	if l.activeSegment.IsMaxed() {
 		err = l.newSegment(off + 1)
 	}
+
 	return off, err
 }
 
@@ -145,7 +149,9 @@ func (l *Log) Truncate(lowest uint64) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	var segments []*segment
+	fmt.Println("len: ", len(l.segments))
 	for _, s := range l.segments {
+		fmt.Println("next offset: ", s.nextOffset)
 		if s.nextOffset <= lowest+1 {
 			if err := s.Remove(); err != nil {
 				return err
@@ -178,5 +184,3 @@ func (l *Log) Reader() io.Reader {
 	}
 	return io.MultiReader(readers...)
 }
-
-

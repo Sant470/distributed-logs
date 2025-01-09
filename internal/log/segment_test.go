@@ -2,7 +2,7 @@ package log
 
 import (
 	"io"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/sant470/distlogs/api/v1"
@@ -10,7 +10,8 @@ import (
 )
 
 func TestSegment(t *testing.T) {
-	dir, _ := ioutil.TempDir("", "sgement_test")
+	dir, _ := os.MkdirTemp("", "segment_test")
+	defer os.RemoveAll(dir)
 	want := api.Record{Value: []byte("hello world")}
 	c := Config{}
 	c.Segment.MaxIndexBytes = 1024
