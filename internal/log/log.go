@@ -149,9 +149,7 @@ func (l *Log) Truncate(lowest uint64) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	var segments []*segment
-	fmt.Println("len: ", len(l.segments))
 	for _, s := range l.segments {
-		fmt.Println("next offset: ", s.nextOffset)
 		if s.nextOffset <= lowest+1 {
 			if err := s.Remove(); err != nil {
 				return err

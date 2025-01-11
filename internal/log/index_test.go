@@ -39,11 +39,13 @@ func TestIndex(t *testing.T) {
 	require.Equal(t, io.EOF, err)
 
 	// index should build it's state from the existing file
+	err = idx.Close()
+	require.NoError(t, err)
 	f, _ = os.OpenFile(f.Name(), os.O_RDWR, 0600)
 	idx, err = newIndex(f, c)
 	require.NoError(t, err)
-	_, pos, err := idx.Read(-1)
+	off, pos, err := idx.Read(-1)
 	require.NoError(t, err)
-	// require.Equal(t, uint32(1), off)
+	require.Equal(t, uint32(1), off)
 	require.Equal(t, entries[1].pos, pos)
 }

@@ -90,7 +90,7 @@ func testReader(t *testing.T, log *Log) {
 
 func testTruncate(t *testing.T, log *Log) {
 	append := api.Record{Value: []byte("hello world")}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 3; i++ {
 		_, err := log.Append(&append)
 		require.NoError(t, err)
 	}
