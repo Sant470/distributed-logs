@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/sant470/distlogs/api/v1"
+	"google.golang.org/grpc"
 )
 
 type CommitLog interface {
@@ -13,6 +14,16 @@ type CommitLog interface {
 
 type Config struct {
 	CommitLog CommitLog
+}
+
+func NewGRPCServer(config *Config) (*grpc.Server, error) {
+	gsrv := grpc.NewServer()
+	srv, err := newgrpcServer(config)
+	if err != nil {
+		return nil, err
+	}
+	api.RegisterLogServer(gsrv, srv)
+	return gsrv, nil
 }
 
 var _ api.LogServer = (*grpcServer)(nil)
@@ -45,6 +56,7 @@ func (s *grpcServer) Consume(ctx context.Context, req *api.ConsumeRequest) (*api
 	return &api.ConsumeResponse{Record: record}, nil
 }
 
+// It implements bidirection streaming rpc, so the client can stream data into the server and server can tell the client whether each request succeeded.
 func (s *grpcServer) ProduceStream(stream api.Log_ProduceStreamServer) error {
 	for {
 		req, err := stream.Recv()
@@ -61,6 +73,7 @@ func (s *grpcServer) ProduceStream(stream api.Log_ProduceStreamServer) error {
 	}
 }
 
+// It implements server side streaming, the client can tell the offset to read from and the server will keep streaming forever(even the records which are not the log yet!)
 func (s *grpcServer) ConsumeStream(req *api.ConsumeRequest, stream api.Log_ConsumeStreamServer) error {
 	for {
 		select {
