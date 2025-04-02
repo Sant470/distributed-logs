@@ -97,7 +97,11 @@ func startClient(t *testing.T, l net.Listener) (api.LogClient, *grpc.ClientConn,
 	t.Helper()
 
 	// fmt.Println("Using CAFile:", config.CAFile)
-	clientTLSConfig, err := config.SetupTLSConfig(config.TLSConfig{CAFile: config.CAFile})
+	clientTLSConfig, err := config.SetupTLSConfig(config.TLSConfig{
+		CAFile:   config.CAFile,
+		CertFile: config.ClientCertFile,
+		KeyFile:  config.ClientKeyFile,
+	})
 	require.NoError(t, err)
 
 	clientCreds := credentials.NewTLS(clientTLSConfig)
