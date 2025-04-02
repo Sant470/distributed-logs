@@ -7,10 +7,11 @@ import (
 	"testing"
 
 	"github.com/sant470/distlogs/api/v1"
+	"github.com/sant470/distlogs/internal/config"
 	"github.com/sant470/distlogs/internal/log"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials"
 )
 
 func TestServer(t *testing.T) {
@@ -33,31 +34,82 @@ func TestServer(t *testing.T) {
 
 func setupTest(t *testing.T, fn func(*Config)) (api.LogClient, *Config, func()) {
 	t.Helper()
-	l, err := net.Listen("tcp", ":0")
+
+	// Start server
+	l, err := net.Listen("tcp", "127.0.0.1:")
 	require.NoError(t, err)
-	clientOptions := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	cc, err := grpc.NewClient(l.Addr().String(), clientOptions...)
+
+	server, cfg, err := startServer(t, l, fn)
 	require.NoError(t, err)
-	dir, err := ioutil.TempDir("", "server-test")
+
+	// Start client
+	client, cc, err := startClient(t, l)
 	require.NoError(t, err)
-	clog, err := log.NewLog(dir, log.Config{})
-	require.NoError(t, err)
-	cfg := &Config{CommitLog: clog}
-	if fn != nil {
-		fn(cfg)
-	}
-	server, err := NewGRPCServer(cfg)
-	require.NoError(t, err)
-	go func() {
-		server.Serve(l)
-	}()
-	client := api.NewLogClient(cc)
+
+	// Cleanup function
 	return client, cfg, func() {
 		server.Stop()
 		cc.Close()
 		l.Close()
-		clog.Remove()
 	}
+}
+
+// startServer initializes the gRPC server with TLS
+func startServer(t *testing.T, l net.Listener, fn func(*Config)) (*grpc.Server, *Config, error) {
+	t.Helper()
+
+	serverTLSConfig, err := config.SetupTLSConfig(config.TLSConfig{
+		CertFile:      config.ServerCertFile,
+		KeyFile:       config.ServerKeyFile,
+		CAFile:        config.CAFile,
+		ServerAddress: l.Addr().String(),
+	})
+	require.NoError(t, err)
+
+	serverCreds := credentials.NewTLS(serverTLSConfig)
+
+	// Create temporary directory for log storage
+	dir, err := ioutil.TempDir("", "server-test")
+	require.NoError(t, err)
+
+	clog, err := log.NewLog(dir, log.Config{})
+	require.NoError(t, err)
+
+	cfg := &Config{CommitLog: clog}
+
+	server, err := NewGRPCServer(cfg, grpc.Creds(serverCreds))
+	require.NoError(t, err)
+
+	// Allow modifying config before starting the server
+	if fn != nil {
+		fn(cfg)
+	}
+
+	go func() {
+		server.Serve(l)
+	}()
+
+	return server, cfg, nil
+}
+
+// startClient initializes the gRPC client with TLS
+func startClient(t *testing.T, l net.Listener) (api.LogClient, *grpc.ClientConn, error) {
+	t.Helper()
+
+	// fmt.Println("Using CAFile:", config.CAFile)
+	clientTLSConfig, err := config.SetupTLSConfig(config.TLSConfig{CAFile: config.CAFile})
+	require.NoError(t, err)
+
+	clientCreds := credentials.NewTLS(clientTLSConfig)
+
+	cc, err := grpc.NewClient(
+		l.Addr().String(),
+		grpc.WithTransportCredentials(clientCreds),
+	)
+	require.NoError(t, err)
+
+	client := api.NewLogClient(cc)
+	return client, cc, nil
 }
 
 func testProduceConsume(t *testing.T, client api.LogClient, config *Config) {

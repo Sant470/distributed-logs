@@ -1,0 +1,14 @@
+{
+    "CN": "dist-logs CA",
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [{
+        "C": "IN",
+        "L": "Banglore",
+        "ST": "KA",
+        "O": "Local Dukan",
+        "OU": "CA Services"
+    }]
+}
