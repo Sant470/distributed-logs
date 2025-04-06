@@ -25,7 +25,6 @@ func (a *Authorizer) Authorize(subject, object, action string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("got here: ", valid)
 	if !valid {
 		msg := fmt.Sprintf("%s not permitted to %s to %s", subject, action, object)
 		st := status.New(codes.PermissionDenied, msg)
